@@ -2,9 +2,9 @@ import React, {useMemo} from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {MosaicGrid, MosaicScene} from './types';
 import {buildRevealRanks, cellTilt, cellTimingJitter} from './revealOrder';
-import {PAPER_TEXTURES} from './textures';
-import {seededPick} from './jitter';
 import {GrainOverlay} from './GrainOverlay';
+
+const GRID_BACKGROUND = '#F3F2EF';
 
 const CROSSFADE_FRAMES = 4;
 
@@ -106,7 +106,6 @@ export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> =
   const resolved = useMemo(() => resolveScenes(scenes, rows, columns), [scenes, rows, columns]);
   const cellWidth = compWidth / columns;
   const cellHeight = compHeight / rows;
-  const paperBg = seededPick('mosaic-bg', PAPER_TEXTURES);
 
   const cells: React.ReactNode[] = [];
   for (let row = 0; row < rows; row++) {
@@ -128,13 +127,7 @@ export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> =
   }
 
   return (
-    <AbsoluteFill
-      style={{
-        backgroundImage: `url(${staticFile(paperBg)})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
+    <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
       {cells}
       <GrainOverlay />
     </AbsoluteFill>

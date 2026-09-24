@@ -12,5 +12,5 @@ export const mosaicExampleScenes: MosaicScene[] = [
   {id: 'scene-1', color: '#6f97a3', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
   {id: 'scene-2', color: '#c9beac', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
   {id: 'scene-3', color: '#8a7d63', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
-  {id: 'scene-4', color: '#3f342a', durationInFrames: 90, revealDuration: 66, pattern: 'top-down'},
+  {id: 'scene-4', color: '#3f342a', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
 ];
