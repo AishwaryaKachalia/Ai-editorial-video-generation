@@ -2,7 +2,6 @@ import React, {useMemo} from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {MosaicGrid, MosaicScene} from './types';
 import {buildRevealRanks, cellTilt, cellTimingJitter} from './revealOrder';
-import {GrainOverlay} from './GrainOverlay';
 
 const GRID_BACKGROUND = '#F3F2EF';
 
@@ -126,10 +125,5 @@ export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> =
     }
   }
 
-  return (
-    <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
-      {cells}
-      <GrainOverlay />
-    </AbsoluteFill>
-  );
+  return <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>{cells}</AbsoluteFill>;
 };
