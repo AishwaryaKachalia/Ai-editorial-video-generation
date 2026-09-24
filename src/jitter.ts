@@ -1,8 +1,18 @@
-// Deterministic pseudo-random offset so repeated renders are frame-identical.
-export const seededJitter = (seed: string, range: number): number => {
+const hashString = (seed: string): number => {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
+  return hash;
+};
+
+// Deterministic pseudo-random offset so repeated renders are frame-identical.
+export const seededJitter = (seed: string, range: number): number => {
+  const hash = hashString(seed);
   return ((hash % 1000) / 1000 - 0.5) * 2 * range;
+};
+
+export const seededPick = <T,>(seed: string, options: readonly T[]): T => {
+  const hash = hashString(seed);
+  return options[hash % options.length];
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {Scene} from './types';
 import {CollageTile} from './CollageTile';
+import {GrainOverlay} from './GrainOverlay';
 
 const CollageScene: React.FC<{scene: Scene}> = ({scene}) => {
   const frame = useCurrentFrame();
@@ -30,6 +31,7 @@ export const CollageReveal: React.FC<{scenes: Scene[]}> = ({scenes}) => {
           </Sequence>
         );
       })}
+      <GrainOverlay />
     </AbsoluteFill>
   );
 };

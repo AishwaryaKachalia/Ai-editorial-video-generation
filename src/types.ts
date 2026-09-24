@@ -17,7 +17,10 @@ export type Tile = {
   /** How many frames the fly-in animation takes. */
   duration?: number;
   zIndex?: number;
+  /** Tint multiplied over the paper-texture card when no `src` is set. */
   color?: string;
+  /** Overlay a plastic-wrap light streak on this tile (screen blend) for a reflective accent. */
+  shine?: boolean;
   /** Override the fly-in start position/rotation; defaults are derived deterministically from `id`. */
   fromX?: number;
   fromY?: number;
