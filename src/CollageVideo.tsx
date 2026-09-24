@@ -50,7 +50,15 @@ const CollageCell: React.FC<{
   const restRotation = cellTilt(cell.id);
   const localFrame = frame - sceneStart;
 
-  const img = <Img src={staticFile(src)} style={{width: '100%', height: '100%', objectFit: 'cover'}} />;
+  // The full scene image is rendered at canvas size inside every cell, offset
+  // so each cell's crop lines up into one continuous picture (like puzzle
+  // pieces of a single photo), not an independently cover-fit image per cell.
+  const img = (
+    <Img
+      src={staticFile(src)}
+      style={{position: 'absolute', width: compWidth, height: compHeight, left: -left, top: -top, objectFit: 'cover'}}
+    />
+  );
 
   const box = (transform: string, opacity: number): React.CSSProperties => ({
     position: 'absolute',
@@ -106,7 +114,7 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
         <CollageCell
           key={cell.id}
           cell={cell}
-          src={activeScene.images[cell.id]}
+          src={activeScene.src}
           compWidth={compWidth}
           compHeight={compHeight}
           fps={fps}

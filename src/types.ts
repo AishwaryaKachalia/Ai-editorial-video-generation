@@ -9,13 +9,13 @@ export type CellRect = {
   height: number;
 };
 
-/** One collage "shot": a block layout plus a distinct photo per cell — each
- * block shows a different image, cropped to its own bounds, not a shared
- * crop of one big image. Together they read as one scene. */
+/** One collage "shot": a block layout, all cells cropping the same shared
+ * image (each cell shows the matching portion, like puzzle pieces of one
+ * photo) rather than each cell holding its own distinct photo. */
 export type CollageScene = {
   id: string;
   cells: CellRect[];
-  /** cellId -> image path under /public. */
-  images: Record<string, string>;
+  /** Path under /public — the one image this scene's cells all crop from. */
+  src: string;
   durationInFrames: number;
 };
