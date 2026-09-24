@@ -5,7 +5,7 @@ import {mosaicExampleScenes} from './scenes/mosaicExample';
 import {collageGridCells} from './grids/collageGrid';
 import {FramePreview, framePreviewDuration} from './FramePreview';
 
-const grid = {cells: collageGridCells, gapPx: 6};
+const grid = {cells: collageGridCells, gapPx: 0};
 
 export const RemotionRoot: React.FC = () => {
   return (

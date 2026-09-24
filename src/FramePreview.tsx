@@ -14,7 +14,7 @@ export const FramePreview: React.FC = () => {
   const {width: compWidth, height: compHeight} = useVideoConfig();
   const index = Math.min(namedFrames.length - 1, Math.floor(frame / FRAMES_PER_LAYOUT));
   const layout = namedFrames[index];
-  const gapPx = 6;
+  const gapPx = 0;
 
   return (
     <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
