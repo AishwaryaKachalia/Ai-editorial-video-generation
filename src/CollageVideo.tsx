@@ -64,7 +64,8 @@ const CollageCell: React.FC<{
   fps: number;
   localFrame: number;
   sceneId: string;
-}> = ({cell, src, compWidth, compHeight, fps, localFrame, sceneId}) => {
+  skipJumble?: boolean;
+}> = ({cell, src, compWidth, compHeight, fps, localFrame, sceneId, skipJumble}) => {
   const left = (cell.x / 100) * compWidth;
   const top = (cell.y / 100) * compHeight;
   const width = (cell.width / 100) * compWidth;
@@ -88,6 +89,11 @@ const CollageCell: React.FC<{
     overflow: 'hidden',
     transform,
   });
+
+  if (skipJumble) {
+    // Last scene: already assembled, no re-jumble right before the outro.
+    return <div style={box(`rotate(${restRotation}deg)`, 1)}>{img}</div>;
+  }
 
   const staggerDelay = cellFlightDelay(cell.id, sceneId, JUMBLE_STAGGER_WINDOW);
   const flightFrame = localFrame - JUMBLE_HOLD_FRAMES - staggerDelay;
@@ -153,7 +159,7 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
         <div
           style={{
             opacity: logoOpacity,
-            width: '62%',
+            width: '78%',
             aspectRatio: '1 / 1',
             borderRadius: '50%',
             backgroundColor: 'rgba(30,28,26,0.92)',
@@ -164,7 +170,7 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
             overflow: 'hidden',
           }}
         >
-          <Img src={staticFile(LOGO_SRC)} style={{width: '72%', height: '72%', objectFit: 'contain'}} />
+          <Img src={staticFile(LOGO_SRC)} style={{width: '76%', height: '76%', objectFit: 'contain'}} />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -182,6 +188,7 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
   const activeScene = isOutro ? lastScene : resolved.slice().reverse().find((s) => s.sceneStart <= frame) ?? resolved[0];
   const sceneStart = isOutro ? scenesEnd : activeScene.sceneStart;
   const localFrame = frame - sceneStart;
+  const isLastScene = activeScene.id === lastScene.id;
 
   return (
     <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
@@ -200,6 +207,7 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
               fps={fps}
               localFrame={localFrame}
               sceneId={activeScene.id}
+              skipJumble={isLastScene}
             />
           ))}
           {activeScene.word && <WordOverlay word={activeScene.word} localFrame={localFrame} />}
