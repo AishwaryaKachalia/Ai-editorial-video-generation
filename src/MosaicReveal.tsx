@@ -1,6 +1,6 @@
 import React, {useMemo} from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import type {MosaicGrid, MosaicScene} from './types';
+import type {CellRect, MosaicGrid, MosaicScene} from './types';
 import {buildRevealRanks, cellTilt, cellTimingJitter} from './revealOrder';
 
 const GRID_BACKGROUND = '#F3F2EF';
@@ -9,11 +9,11 @@ const CROSSFADE_FRAMES = 4;
 
 type ResolvedScene = MosaicScene & {sceneStart: number; ranks: Map<string, number>; cellCount: number};
 
-const resolveScenes = (scenes: MosaicScene[], rows: number, columns: number): ResolvedScene[] => {
+const resolveScenes = (scenes: MosaicScene[], cells: CellRect[]): ResolvedScene[] => {
   let cumulative = 0;
   return scenes.map((scene) => {
-    const ranks = buildRevealRanks(rows, columns, scene.pattern ?? 'bottom-up', scene.id);
-    const resolved = {...scene, sceneStart: cumulative, ranks, cellCount: rows * columns};
+    const ranks = buildRevealRanks(cells, scene.pattern ?? 'bottom-up', scene.id);
+    const resolved = {...scene, sceneStart: cumulative, ranks, cellCount: cells.length};
     cumulative += scene.durationInFrames;
     return resolved;
   });
@@ -22,28 +22,25 @@ const resolveScenes = (scenes: MosaicScene[], rows: number, columns: number): Re
 export const totalDuration = (scenes: MosaicScene[]): number =>
   scenes.reduce((sum, s) => sum + s.durationInFrames, 0);
 
-const swapFrame = (scene: ResolvedScene, row: number, col: number): number => {
-  const rank = scene.ranks.get(`${row}-${col}`) ?? 0;
+const swapFrame = (scene: ResolvedScene, cellId: string): number => {
+  const rank = scene.ranks.get(cellId) ?? 0;
   const fraction = scene.cellCount <= 1 ? 0 : rank / (scene.cellCount - 1);
-  const jitter = cellTimingJitter(row, col, scene.id);
+  const jitter = cellTimingJitter(cellId, scene.id);
   return scene.sceneStart + fraction * scene.revealDuration + jitter;
 };
 
 const MosaicCell: React.FC<{
-  row: number;
-  col: number;
+  cell: CellRect;
   scenes: ResolvedScene[];
-  cellWidth: number;
-  cellHeight: number;
   gapPx: number;
   compWidth: number;
   compHeight: number;
-}> = ({row, col, scenes, cellWidth, cellHeight, gapPx, compWidth, compHeight}) => {
+}> = ({cell, scenes, gapPx, compWidth, compHeight}) => {
   const frame = useCurrentFrame();
 
   let currentIndex = -1;
   for (let i = 0; i < scenes.length; i++) {
-    if (swapFrame(scenes[i], row, col) <= frame) {
+    if (swapFrame(scenes[i], cell.id) <= frame) {
       currentIndex = i;
     }
   }
@@ -53,13 +50,18 @@ const MosaicCell: React.FC<{
   }
 
   const currentScene = scenes[currentIndex];
-  const currentSwap = swapFrame(currentScene, row, col);
+  const currentSwap = swapFrame(currentScene, cell.id);
   const fadeProgress = Math.min(1, Math.max(0, (frame - currentSwap) / CROSSFADE_FRAMES));
   const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
 
+  const cellLeftPx = (cell.x / 100) * compWidth;
+  const cellTopPx = (cell.y / 100) * compHeight;
+  const cellWidthPx = (cell.width / 100) * compWidth;
+  const cellHeightPx = (cell.height / 100) * compHeight;
+
   // Global offset so every cell's image lines up into one continuous picture.
-  const imageLeft = -(col * cellWidth + gapPx / 2);
-  const imageTop = -(row * cellHeight + gapPx / 2);
+  const imageLeft = -(cellLeftPx + gapPx / 2);
+  const imageTop = -(cellTopPx + gapPx / 2);
 
   const renderLayer = (scene: ResolvedScene, opacity: number, key: string) => (
     <div key={key} style={{position: 'absolute', inset: 0, opacity}}>
@@ -85,12 +87,12 @@ const MosaicCell: React.FC<{
     <div
       style={{
         position: 'absolute',
-        left: col * cellWidth + gapPx / 2,
-        top: row * cellHeight + gapPx / 2,
-        width: cellWidth - gapPx,
-        height: cellHeight - gapPx,
+        left: cellLeftPx + gapPx / 2,
+        top: cellTopPx + gapPx / 2,
+        width: cellWidthPx - gapPx,
+        height: cellHeightPx - gapPx,
         overflow: 'hidden',
-        transform: `rotate(${cellTilt(row, col)}deg)`,
+        transform: `rotate(${cellTilt(cell.id)}deg)`,
       }}
     >
       {prevScene && fadeProgress < 1 && renderLayer(prevScene, 1, 'prev')}
@@ -101,29 +103,14 @@ const MosaicCell: React.FC<{
 
 export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> = ({scenes, grid}) => {
   const {width: compWidth, height: compHeight} = useVideoConfig();
-  const {columns, rows, gapPx = 6} = grid;
-  const resolved = useMemo(() => resolveScenes(scenes, rows, columns), [scenes, rows, columns]);
-  const cellWidth = compWidth / columns;
-  const cellHeight = compHeight / rows;
+  const {cells, gapPx = 6} = grid;
+  const resolved = useMemo(() => resolveScenes(scenes, cells), [scenes, cells]);
 
-  const cells: React.ReactNode[] = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < columns; col++) {
-      cells.push(
-        <MosaicCell
-          key={`${row}-${col}`}
-          row={row}
-          col={col}
-          scenes={resolved}
-          cellWidth={cellWidth}
-          cellHeight={cellHeight}
-          gapPx={gapPx}
-          compWidth={compWidth}
-          compHeight={compHeight}
-        />,
-      );
-    }
-  }
-
-  return <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>{cells}</AbsoluteFill>;
+  return (
+    <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
+      {cells.map((cell) => (
+        <MosaicCell key={cell.id} cell={cell} scenes={resolved} gapPx={gapPx} compWidth={compWidth} compHeight={compHeight} />
+      ))}
+    </AbsoluteFill>
+  );
 };

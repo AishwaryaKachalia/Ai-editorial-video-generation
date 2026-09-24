@@ -19,9 +19,18 @@ export type MosaicScene = {
   pattern?: RevealPattern;
 };
 
+/** A single grid cell, as a percentage rect (0-100) of the canvas. Cells can
+ * vary in size — a tessellating irregular layout, not just a uniform grid. */
+export type CellRect = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type MosaicGrid = {
-  columns: number;
-  rows: number;
-  /** Grout gap between cells, in pixels, showing the paper texture beneath. */
+  cells: CellRect[];
+  /** Grout gap between cells, in pixels, showing the background beneath. */
   gapPx?: number;
 };

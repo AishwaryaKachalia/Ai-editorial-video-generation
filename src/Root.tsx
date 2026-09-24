@@ -2,8 +2,9 @@ import React from 'react';
 import {Composition} from 'remotion';
 import {MosaicReveal, totalDuration} from './MosaicReveal';
 import {mosaicExampleScenes} from './scenes/mosaicExample';
+import {collageGridCells} from './grids/collageGrid';
 
-const grid = {columns: 3, rows: 4, gapPx: 6};
+const grid = {cells: collageGridCells, gapPx: 6};
 
 export const RemotionRoot: React.FC = () => {
   return (
