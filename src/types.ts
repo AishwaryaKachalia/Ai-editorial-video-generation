@@ -1,12 +1,3 @@
-export type MosaicScene = {
-  id: string;
-  /** Path under /public, or omit for a flat placeholder color. */
-  src?: string;
-  color?: string;
-  /** How long this scene holds before the next scene's fragments fly in. */
-  durationInFrames: number;
-};
-
 /** A single grid cell, as a percentage rect (0-100) of the canvas — this is
  * the cell's resting position. Cells can vary in size — a tessellating
  * irregular layout, not just a uniform grid. */
@@ -18,8 +9,13 @@ export type CellRect = {
   height: number;
 };
 
-export type MosaicGrid = {
+/** One collage "shot": a block layout plus a distinct photo per cell — each
+ * block shows a different image, cropped to its own bounds, not a shared
+ * crop of one big image. Together they read as one scene. */
+export type CollageScene = {
+  id: string;
   cells: CellRect[];
-  /** Grout gap between cells, in pixels, showing the background beneath. */
-  gapPx?: number;
+  /** cellId -> image path under /public. */
+  images: Record<string, string>;
+  durationInFrames: number;
 };

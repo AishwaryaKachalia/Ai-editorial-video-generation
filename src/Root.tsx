@@ -1,23 +1,20 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {MosaicReveal, totalDuration} from './MosaicReveal';
-import {mosaicExampleScenes} from './scenes/mosaicExample';
-import {collageGridCells} from './grids/collageGrid';
+import {CollageVideo, totalDuration} from './CollageVideo';
+import {collageScenes} from './scenes/collageScenes';
 import {FramePreview, framePreviewDuration} from './FramePreview';
-
-const grid = {cells: collageGridCells, gapPx: 0};
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="MosaicReveal"
-        component={MosaicReveal}
-        durationInFrames={totalDuration(mosaicExampleScenes)}
+        id="CollageVideo"
+        component={CollageVideo}
+        durationInFrames={totalDuration(collageScenes)}
         fps={30}
         width={1080}
         height={1920}
-        defaultProps={{scenes: mosaicExampleScenes, grid}}
+        defaultProps={{scenes: collageScenes}}
       />
       <Composition
         id="FramePreview"

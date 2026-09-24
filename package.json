@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "remotion studio",
-    "render": "remotion render MosaicReveal out/video.mp4",
-    "still": "remotion still MosaicReveal out/still.png",
+    "render": "remotion render CollageVideo out/video.mp4",
+    "still": "remotion still CollageVideo out/still.png",
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
