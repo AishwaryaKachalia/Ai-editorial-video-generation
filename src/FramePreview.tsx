@@ -10,10 +10,10 @@ const FRAMES_PER_LAYOUT = 45;
 // First layout: pieces start close to their resting slot (visibly gapped,
 // not scattered off-canvas) and drift inward to close the gap — a gentle
 // settle, not a chaotic tumble.
-const SETTLE_FLIGHT_FRAMES = 28;
-const SETTLE_STAGGER_WINDOW = 14;
-const SETTLE_OFFSET_RANGE = 12;
-const SETTLE_ROTATION_RANGE = 8;
+const SETTLE_FLIGHT_FRAMES = 20;
+const SETTLE_STAGGER_WINDOW = 10;
+const SETTLE_OFFSET_RANGE = 3;
+const SETTLE_ROTATION_RANGE = 3;
 
 // Every layout after the first: no travel, just a quick flash-in.
 const FLASH_FRAMES = 3;
