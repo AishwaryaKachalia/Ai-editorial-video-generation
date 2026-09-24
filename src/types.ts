@@ -1,4 +1,11 @@
-export type RevealPattern = 'bottom-up' | 'top-down' | 'left-right' | 'right-left' | 'diagonal' | 'random';
+export type RevealPattern =
+  | 'bottom-up'
+  | 'top-down'
+  | 'left-right'
+  | 'right-left'
+  | 'diagonal'
+  | 'random'
+  | 'reading-order';
 
 export type MosaicScene = {
   id: string;

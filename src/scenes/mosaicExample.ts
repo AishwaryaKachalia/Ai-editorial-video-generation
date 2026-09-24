@@ -9,8 +9,8 @@ import type {MosaicScene} from '../types';
 // apart — comfortably more than the 4-frame crossfade, so cells swap
 // strictly one at a time instead of several firing together.
 export const mosaicExampleScenes: MosaicScene[] = [
-  {id: 'scene-1', color: '#6f97a3', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
-  {id: 'scene-2', color: '#c9beac', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
-  {id: 'scene-3', color: '#8a7d63', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
-  {id: 'scene-4', color: '#3f342a', durationInFrames: 90, revealDuration: 66, pattern: 'bottom-up'},
+  {id: 'scene-1', color: '#6f97a3', durationInFrames: 90, revealDuration: 66, pattern: 'reading-order'},
+  {id: 'scene-2', color: '#c9beac', durationInFrames: 90, revealDuration: 66, pattern: 'reading-order'},
+  {id: 'scene-3', color: '#8a7d63', durationInFrames: 90, revealDuration: 66, pattern: 'reading-order'},
+  {id: 'scene-4', color: '#3f342a', durationInFrames: 90, revealDuration: 66, pattern: 'reading-order'},
 ];

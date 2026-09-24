@@ -8,6 +8,7 @@ const primaryKey = (row: number, col: number, pattern: RevealPattern): number =>
     case 'bottom-up':
       return -row;
     case 'top-down':
+    case 'reading-order':
       return row;
     case 'left-right':
       return col;
@@ -22,9 +23,10 @@ const primaryKey = (row: number, col: number, pattern: RevealPattern): number =>
   }
 };
 
-// One-by-one reveal order: cells are ranked so exactly one swaps at a time,
-// biased toward `pattern`'s direction but with a randomized tiebreak within
-// each rank tier so it doesn't look like a mechanical row-by-row wipe.
+// One-by-one reveal order: cells are ranked so exactly one swaps at a time.
+// `reading-order` is strictly row-major (left-to-right, top-to-bottom) —
+// everything else is biased toward `pattern`'s direction but with a
+// randomized tiebreak within each rank tier so it doesn't look mechanical.
 export const buildRevealRanks = (
   rows: number,
   columns: number,
@@ -42,7 +44,7 @@ export const buildRevealRanks = (
     row,
     col,
     key: primaryKey(row, col, pattern),
-    tiebreak: seededJitter(`${seed}-order-${row}-${col}`, 1),
+    tiebreak: pattern === 'reading-order' ? col : seededJitter(`${seed}-order-${row}-${col}`, 1),
   }));
 
   withKeys.sort((a, b) => a.key - b.key || a.tiebreak - b.tiebreak);
