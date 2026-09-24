@@ -1,35 +1,20 @@
-export type Tile = {
-  /** Unique-ish key; also used to seed deterministic jitter for the default fly-in direction. */
+export type RevealPattern = 'bottom-up' | 'top-down' | 'left-right' | 'right-left' | 'diagonal' | 'random';
+
+export type MosaicScene = {
   id: string;
-  /** Path relative to /public, e.g. "images/bottle.jpg". Omit to render a flat color placeholder. */
+  /** Path under /public, or omit for a flat placeholder color. */
   src?: string;
-  type?: 'image' | 'video';
-  /** Center position, percentage of canvas width/height (0-100). */
-  x: number;
-  y: number;
-  /** Size, percentage of canvas width/height (0-100). */
-  width: number;
-  height: number;
-  /** Final resting rotation in degrees. */
-  rotation?: number;
-  /** Frame (relative to the scene start) this tile begins flying in. */
-  startFrame: number;
-  /** How many frames the fly-in animation takes. */
-  duration?: number;
-  zIndex?: number;
-  /** Tint multiplied over the paper-texture card when no `src` is set. */
   color?: string;
-  /** Overlay a plastic-wrap light streak on this tile (screen blend) for a reflective accent. */
-  shine?: boolean;
-  /** Override the fly-in start position/rotation; defaults are derived deterministically from `id`. */
-  fromX?: number;
-  fromY?: number;
-  fromRotation?: number;
+  /** How long this scene owns the grid before the next scene starts revealing. */
+  durationInFrames: number;
+  /** How many frames the cell-by-cell cascade takes to cover the whole grid. */
+  revealDuration: number;
+  pattern?: RevealPattern;
 };
 
-export type Scene = {
-  id: string;
-  durationInFrames: number;
-  background?: string;
-  tiles: Tile[];
+export type MosaicGrid = {
+  columns: number;
+  rows: number;
+  /** Grout gap between cells, in pixels, showing the paper texture beneath. */
+  gapPx?: number;
 };

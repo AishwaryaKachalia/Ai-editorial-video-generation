@@ -13,9 +13,3 @@ export const PAPER_TEXTURES = [
 ];
 
 export const GRAIN_OVERLAY = 'textures/overlays/overlay_1.png';
-
-export const PLASTIC_SHINES = [
-  'textures/plastic/plastic_1.png',
-  'textures/plastic/plastic_2.png',
-  'textures/plastic/plastic_5.png',
-];
