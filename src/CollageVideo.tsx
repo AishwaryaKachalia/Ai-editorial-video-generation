@@ -19,7 +19,7 @@ const FontFace = () => (
 );
 
 const GRID_BACKGROUND = '#F3F2EF';
-const LOGO_SRC = 'images/logo.jpg';
+const LOGO_SRC = 'images/logo-mark.png';
 
 // Every scene: pieces appear jumbled (pushed outward from center, leaving
 // the middle empty) and HOLD there — that's the beat the word reads over —
@@ -156,15 +156,15 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
             width: '46%',
             aspectRatio: '1 / 1',
             borderRadius: '50%',
-            backgroundColor: 'rgba(243,242,239,0.9)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
+            backgroundColor: 'rgba(30,28,26,0.92)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
           }}
         >
-          <Img src={staticFile(LOGO_SRC)} style={{width: '78%', height: '78%', objectFit: 'contain'}} />
+          <Img src={staticFile(LOGO_SRC)} style={{width: '62%', height: '62%', objectFit: 'contain'}} />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
