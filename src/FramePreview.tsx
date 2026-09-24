@@ -2,16 +2,16 @@ import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {CellRect} from './types';
 import {namedFrames} from './grids/frames';
-import {cellFlightDelay, cellFlightStart, cellTilt} from './cellMotion';
+import {cellFlightStart, cellTilt} from './cellMotion';
 
 const GRID_BACKGROUND = '#F3F2EF';
 const FRAMES_PER_LAYOUT = 45;
 
-// First layout: pieces start close to their resting slot (visibly gapped,
-// not scattered off-canvas) and drift inward to close the gap — a gentle
-// settle, not a chaotic tumble.
-const SETTLE_FLIGHT_FRAMES = 20;
-const SETTLE_STAGGER_WINDOW = 10;
+// First layout: every piece is visible from frame 0, all starting close to
+// their resting slot (visibly gapped, not scattered off-canvas), and all
+// drift inward together to close the gap — no stagger, or pieces that
+// haven't appeared yet read as a hole in the image, not "still arriving."
+const SETTLE_FLIGHT_FRAMES = 16;
 const SETTLE_OFFSET_RANGE = 3;
 const SETTLE_ROTATION_RANGE = 3;
 
@@ -64,12 +64,8 @@ const AnimatedCell: React.FC<{
     return <div style={boxStyle(`rotate(${restRotation}deg)`, opacity, index)}>{cell.id}</div>;
   }
 
-  const delay = cellFlightDelay(cell.id, layoutId, SETTLE_STAGGER_WINDOW);
-  const flightFrame = localFrame - delay;
-  if (flightFrame < 0) return null;
-
   const progress = spring({
-    frame: flightFrame,
+    frame: localFrame,
     fps,
     durationInFrames: SETTLE_FLIGHT_FRAMES,
     config: {damping: 200, mass: 0.9},
@@ -78,12 +74,11 @@ const AnimatedCell: React.FC<{
   const offsetXPct = interpolate(progress, [0, 1], [start.offsetX, 0]);
   const offsetYPct = interpolate(progress, [0, 1], [start.offsetY, 0]);
   const rotation = interpolate(progress, [0, 1], [start.rotation, restRotation]);
-  const opacity = interpolate(flightFrame, [0, 6], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const offsetXPx = (offsetXPct / 100) * compWidth;
   const offsetYPx = (offsetYPct / 100) * compHeight;
 
   return (
-    <div style={boxStyle(`translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`, opacity, Math.round(delay * 10))}>
+    <div style={boxStyle(`translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`, 1, index)}>
       {cell.id}
     </div>
   );
