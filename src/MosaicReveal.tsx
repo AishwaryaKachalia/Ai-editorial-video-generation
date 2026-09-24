@@ -5,11 +5,16 @@ import {cellFlightDelay, cellFlightStart, cellTilt} from './cellMotion';
 
 const GRID_BACKGROUND = '#F3F2EF';
 
-// How long a single fragment's fly-in takes, and how wide a window its start
-// is staggered across — flights overlap heavily inside that window, which is
-// what makes the assembly read as chaotic rather than one-at-a-time.
+// How long a single fragment's fly takes, and how wide a window its start is
+// staggered across — flights overlap heavily inside that window, which is
+// what makes the assembly/disassembly read as chaotic rather than
+// one-at-a-time.
 const FLIGHT_FRAMES = 22;
 const STAGGER_WINDOW = 20;
+// The closing beat: fragments of the last image scatter back apart,
+// mirroring the intro. Long enough for every staggered flight to finish.
+const OUTRO_FRAMES = STAGGER_WINDOW + FLIGHT_FRAMES;
+const OUTRO_SEED = 'outro';
 
 type ResolvedScene = MosaicScene & {sceneStart: number};
 
@@ -23,7 +28,7 @@ const resolveScenes = (scenes: MosaicScene[]): ResolvedScene[] => {
 };
 
 export const totalDuration = (scenes: MosaicScene[]): number =>
-  scenes.reduce((sum, s) => sum + s.durationInFrames, 0);
+  scenes.reduce((sum, s) => sum + s.durationInFrames, 0) + OUTRO_FRAMES;
 
 const CellContent: React.FC<{scene: MosaicScene; compWidth: number; compHeight: number; imageLeft: number; imageTop: number}> = ({
   scene,
@@ -60,16 +65,8 @@ const MosaicCell: React.FC<{
 }> = ({cell, scenes, gapPx, compWidth, compHeight, fps}) => {
   const frame = useCurrentFrame();
 
-  let currentIndex = 0;
-  for (let i = 0; i < scenes.length; i++) {
-    if (scenes[i].sceneStart <= frame) currentIndex = i;
-    else break;
-  }
-  const scene = scenes[currentIndex];
-  const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
-  const localFrame = frame - scene.sceneStart;
-  const delay = cellFlightDelay(cell.id, scene.id, STAGGER_WINDOW);
-  const flightFrame = localFrame - delay;
+  const lastScene = scenes[scenes.length - 1];
+  const scenesEnd = lastScene.sceneStart + lastScene.durationInFrames;
 
   const restRotation = cellTilt(cell.id);
   const cellLeftPx = (cell.x / 100) * compWidth;
@@ -88,15 +85,64 @@ const MosaicCell: React.FC<{
     overflow: 'hidden',
   };
 
+  const renderContent = (scene: MosaicScene) => (
+    <CellContent scene={scene} compWidth={compWidth} compHeight={compHeight} imageLeft={imageLeft} imageTop={imageTop} />
+  );
+
+  if (frame >= scenesEnd) {
+    // Outro: the last image's fragments scatter back apart, mirroring the intro.
+    const outroFrame = frame - scenesEnd;
+    const delay = cellFlightDelay(cell.id, OUTRO_SEED, STAGGER_WINDOW);
+    const flightFrame = outroFrame - delay;
+
+    if (flightFrame < 0) {
+      return (
+        <div style={{...baseStyle, transform: `rotate(${restRotation}deg)`}}>{renderContent(lastScene)}</div>
+      );
+    }
+
+    const progress = spring({frame: flightFrame, fps, durationInFrames: FLIGHT_FRAMES, config: {damping: 200, mass: 0.7}});
+    const target = cellFlightStart(cell.id, OUTRO_SEED);
+    const offsetXPct = interpolate(progress, [0, 1], [0, target.offsetX]);
+    const offsetYPct = interpolate(progress, [0, 1], [0, target.offsetY]);
+    const rotation = interpolate(progress, [0, 1], [restRotation, restRotation + target.rotation]);
+    const opacity = interpolate(flightFrame, [FLIGHT_FRAMES - 8, FLIGHT_FRAMES], [1, 0], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+    const offsetXPx = (offsetXPct / 100) * compWidth;
+    const offsetYPx = (offsetYPct / 100) * compHeight;
+
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          opacity,
+          zIndex: Math.round(delay * 10),
+          transform: `translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`,
+        }}
+      >
+        {renderContent(lastScene)}
+      </div>
+    );
+  }
+
+  let currentIndex = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    if (scenes[i].sceneStart <= frame) currentIndex = i;
+    else break;
+  }
+  const scene = scenes[currentIndex];
+  const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
+  const localFrame = frame - scene.sceneStart;
+  const delay = cellFlightDelay(cell.id, scene.id, STAGGER_WINDOW);
+  const flightFrame = localFrame - delay;
+
   if (flightFrame < 0) {
     // Hasn't started flying in yet: show the previous scene settled in place
     // (fragments peel away to reveal the next image), or nothing on scene 1.
     if (!prevScene) return null;
-    return (
-      <div style={{...baseStyle, transform: `rotate(${restRotation}deg)`}}>
-        <CellContent scene={prevScene} compWidth={compWidth} compHeight={compHeight} imageLeft={imageLeft} imageTop={imageTop} />
-      </div>
-    );
+    return <div style={{...baseStyle, transform: `rotate(${restRotation}deg)`}}>{renderContent(prevScene)}</div>;
   }
 
   const progress = spring({frame: flightFrame, fps, durationInFrames: FLIGHT_FRAMES, config: {damping: 200, mass: 0.7}});
@@ -117,7 +163,7 @@ const MosaicCell: React.FC<{
         transform: `translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`,
       }}
     >
-      <CellContent scene={scene} compWidth={compWidth} compHeight={compHeight} imageLeft={imageLeft} imageTop={imageTop} />
+      {renderContent(scene)}
     </div>
   );
 };
