@@ -3,15 +3,32 @@ import {AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, use
 import type {CellRect, CollageScene} from './types';
 import {cellFlightDelay, cellFlightStart, cellJumbleStart, cellTilt} from './cellMotion';
 
+// Self-hosted (not fetched live from Google Fonts at render time — this
+// sandbox's headless Chromium doesn't trust the network proxy's CA for
+// external font requests, so the font is downloaded once into /public).
+const fontFamily = 'Manrope';
+const FontFace = () => (
+  <style>{`
+    @font-face {
+      font-family: 'Manrope';
+      font-style: normal;
+      font-weight: 800;
+      src: url('${staticFile('fonts/Manrope-ExtraBold.woff2')}') format('woff2');
+    }
+  `}</style>
+);
+
 const GRID_BACKGROUND = '#F3F2EF';
 
-// Every scene: pieces start jumbled (pushed outward from center, leaving the
-// middle empty) and converge into the puzzle, staggered so many are moving
-// at once.
-const JUMBLE_FLIGHT_FRAMES = 26;
-const JUMBLE_STAGGER_WINDOW = 14;
+// Every scene: pieces appear jumbled (pushed outward from center, leaving
+// the middle empty) and HOLD there — that's the beat the word reads over —
+// before converging into the puzzle.
+const JUMBLE_HOLD_FRAMES = 18; // ~0.6s at 30fps, within the requested 0.5-0.7s
+const JUMBLE_FLIGHT_FRAMES = 22;
+const JUMBLE_STAGGER_WINDOW = 10;
 const JUMBLE_MAGNITUDE = 30;
 const JUMBLE_ROTATION_RANGE = 28;
+const PIECE_FADE_IN_FRAMES = 6;
 
 // Closing beat: the last scene's pieces scatter back apart.
 const OUTRO_FLIGHT_FRAMES = 20;
@@ -19,10 +36,10 @@ const OUTRO_OFFSET_RANGE = 45;
 const OUTRO_ROTATION_RANGE = 30;
 const OUTRO_SEED = 'outro';
 
-// Word overlay: fades in once the puzzle has mostly assembled, holds, fades
-// out before the next scene's pieces start jumbling.
-const WORD_IN_START = JUMBLE_STAGGER_WINDOW + JUMBLE_FLIGHT_FRAMES - 6;
-const WORD_FADE_FRAMES = 12;
+// Word: fades in with the jumbled pieces, holds through the jumble, fades
+// out as the pieces start converging.
+const WORD_FADE_IN_FRAMES = 6;
+const WORD_FADE_OUT_END = JUMBLE_HOLD_FRAMES + 8;
 
 const resolveScenes = (scenes: CollageScene[]) => {
   let cumulative = 0;
@@ -86,35 +103,37 @@ const CollageCell: React.FC<{
   }
 
   const staggerDelay = cellFlightDelay(cell.id, sceneId, JUMBLE_STAGGER_WINDOW);
-  const flightFrame = localFrame - staggerDelay;
+  const flightFrame = localFrame - JUMBLE_HOLD_FRAMES - staggerDelay;
 
-  const progress = spring({frame: flightFrame, fps, durationInFrames: JUMBLE_FLIGHT_FRAMES, config: {damping: 200, mass: 0.8}});
   const start = cellJumbleStart(cell, sceneId, JUMBLE_MAGNITUDE, JUMBLE_ROTATION_RANGE);
+  const progress =
+    flightFrame < 0 ? 0 : spring({frame: flightFrame, fps, durationInFrames: JUMBLE_FLIGHT_FRAMES, config: {damping: 200, mass: 0.8}});
   const offsetXPx = (interpolate(progress, [0, 1], [start.offsetX, 0]) / 100) * compWidth;
   const offsetYPx = (interpolate(progress, [0, 1], [start.offsetY, 0]) / 100) * compHeight;
   const rotation = interpolate(progress, [0, 1], [start.rotation, restRotation]);
-  const opacity = interpolate(flightFrame, [0, 8], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const opacity = interpolate(localFrame, [0, PIECE_FADE_IN_FRAMES], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return <div style={box(`translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`, opacity)}>{img}</div>;
 };
 
-const WordOverlay: React.FC<{word: string; localFrame: number; sceneDuration: number}> = ({word, localFrame, sceneDuration}) => {
-  const fadeOutStart = sceneDuration - WORD_FADE_FRAMES;
+const WordOverlay: React.FC<{word: string; localFrame: number}> = ({word, localFrame}) => {
   const opacity = interpolate(
     localFrame,
-    [WORD_IN_START, WORD_IN_START + WORD_FADE_FRAMES, fadeOutStart, sceneDuration],
+    [0, WORD_FADE_IN_FRAMES, JUMBLE_HOLD_FRAMES, WORD_FADE_OUT_END],
     [0, 1, 1, 0],
     {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
   );
   return (
-    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '10%', pointerEvents: 'none'}}>
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'}}>
       <div
         style={{
           opacity,
           color: '#F3F2EF',
-          fontFamily: 'Georgia, serif',
-          fontSize: 88,
-          letterSpacing: 1,
-          textShadow: '0 2px 24px rgba(0,0,0,0.45)',
+          fontFamily,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          fontSize: 96,
+          letterSpacing: 2,
+          textShadow: '0 2px 24px rgba(0,0,0,0.5)',
         }}
       >
         {word}
@@ -136,6 +155,7 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
 
   return (
     <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
+      <FontFace />
       {activeScene.cells.map((cell) => (
         <CollageCell
           key={cell.id}
@@ -150,9 +170,7 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
           isOutro={isOutro}
         />
       ))}
-      {!isOutro && activeScene.word && (
-        <WordOverlay word={activeScene.word} localFrame={localFrame} sceneDuration={activeScene.durationInFrames} />
-      )}
+      {!isOutro && activeScene.word && <WordOverlay word={activeScene.word} localFrame={localFrame} />}
     </AbsoluteFill>
   );
 };
