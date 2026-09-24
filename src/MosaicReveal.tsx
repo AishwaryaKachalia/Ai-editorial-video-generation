@@ -1,19 +1,20 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {MosaicGrid, MosaicScene} from './types';
-import {revealFraction, cellJitterFrames} from './revealOrder';
+import {buildRevealRanks, cellTilt, cellTimingJitter} from './revealOrder';
 import {PAPER_TEXTURES} from './textures';
 import {seededPick} from './jitter';
 import {GrainOverlay} from './GrainOverlay';
 
-const CROSSFADE_FRAMES = 5;
+const CROSSFADE_FRAMES = 4;
 
-type ResolvedScene = MosaicScene & {sceneStart: number};
+type ResolvedScene = MosaicScene & {sceneStart: number; ranks: Map<string, number>; cellCount: number};
 
-const resolveScenes = (scenes: MosaicScene[]): ResolvedScene[] => {
+const resolveScenes = (scenes: MosaicScene[], rows: number, columns: number): ResolvedScene[] => {
   let cumulative = 0;
   return scenes.map((scene) => {
-    const resolved = {...scene, sceneStart: cumulative};
+    const ranks = buildRevealRanks(rows, columns, scene.pattern ?? 'bottom-up', scene.id);
+    const resolved = {...scene, sceneStart: cumulative, ranks, cellCount: rows * columns};
     cumulative += scene.durationInFrames;
     return resolved;
   });
@@ -22,29 +23,28 @@ const resolveScenes = (scenes: MosaicScene[]): ResolvedScene[] => {
 export const totalDuration = (scenes: MosaicScene[]): number =>
   scenes.reduce((sum, s) => sum + s.durationInFrames, 0);
 
-const swapFrame = (scene: ResolvedScene, row: number, col: number, rows: number, columns: number): number => {
-  const frac = revealFraction(row, col, rows, columns, scene.pattern ?? 'bottom-up');
-  const jitter = cellJitterFrames(row, col, scene.id, scene.revealDuration * 0.12);
-  return scene.sceneStart + frac * scene.revealDuration + jitter;
+const swapFrame = (scene: ResolvedScene, row: number, col: number): number => {
+  const rank = scene.ranks.get(`${row}-${col}`) ?? 0;
+  const fraction = scene.cellCount <= 1 ? 0 : rank / (scene.cellCount - 1);
+  const jitter = cellTimingJitter(row, col, scene.id);
+  return scene.sceneStart + fraction * scene.revealDuration + jitter;
 };
 
 const MosaicCell: React.FC<{
   row: number;
   col: number;
-  rows: number;
-  columns: number;
   scenes: ResolvedScene[];
   cellWidth: number;
   cellHeight: number;
   gapPx: number;
   compWidth: number;
   compHeight: number;
-}> = ({row, col, rows, columns, scenes, cellWidth, cellHeight, gapPx, compWidth, compHeight}) => {
+}> = ({row, col, scenes, cellWidth, cellHeight, gapPx, compWidth, compHeight}) => {
   const frame = useCurrentFrame();
 
   let currentIndex = -1;
   for (let i = 0; i < scenes.length; i++) {
-    if (swapFrame(scenes[i], row, col, rows, columns) <= frame) {
+    if (swapFrame(scenes[i], row, col) <= frame) {
       currentIndex = i;
     }
   }
@@ -54,7 +54,7 @@ const MosaicCell: React.FC<{
   }
 
   const currentScene = scenes[currentIndex];
-  const currentSwap = swapFrame(currentScene, row, col, rows, columns);
+  const currentSwap = swapFrame(currentScene, row, col);
   const fadeProgress = Math.min(1, Math.max(0, (frame - currentSwap) / CROSSFADE_FRAMES));
   const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
 
@@ -91,6 +91,7 @@ const MosaicCell: React.FC<{
         width: cellWidth - gapPx,
         height: cellHeight - gapPx,
         overflow: 'hidden',
+        transform: `rotate(${cellTilt(row, col)}deg)`,
       }}
     >
       {prevScene && fadeProgress < 1 && renderLayer(prevScene, 1, 'prev')}
@@ -102,7 +103,7 @@ const MosaicCell: React.FC<{
 export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> = ({scenes, grid}) => {
   const {width: compWidth, height: compHeight} = useVideoConfig();
   const {columns, rows, gapPx = 6} = grid;
-  const resolved = resolveScenes(scenes);
+  const resolved = useMemo(() => resolveScenes(scenes, rows, columns), [scenes, rows, columns]);
   const cellWidth = compWidth / columns;
   const cellHeight = compHeight / rows;
   const paperBg = seededPick('mosaic-bg', PAPER_TEXTURES);
@@ -115,8 +116,6 @@ export const MosaicReveal: React.FC<{scenes: MosaicScene[]; grid: MosaicGrid}> =
           key={`${row}-${col}`}
           row={row}
           col={col}
-          rows={rows}
-          columns={columns}
           scenes={resolved}
           cellWidth={cellWidth}
           cellHeight={cellHeight}
