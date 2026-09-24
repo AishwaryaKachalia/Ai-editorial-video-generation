@@ -11,10 +11,12 @@ export const cellTilt = (cellId: string, maxDegrees = 2.2): number => seededJitt
 export const cellFlightDelay = (cellId: string, sceneId: string, windowFrames: number): number =>
   ((seededJitter(`${sceneId}-delay-${cellId}`, 1) + 1) / 2) * windowFrames;
 
-// Random off-screen-ish starting offset (percent of canvas) and rotation for
-// the fly-in, re-seeded per scene so the scatter direction varies each time.
-export const cellFlightStart = (cellId: string, sceneId: string) => ({
-  offsetX: seededJitter(`${sceneId}-startX-${cellId}`, 55),
-  offsetY: seededJitter(`${sceneId}-startY-${cellId}`, 55),
-  rotation: seededJitter(`${sceneId}-startRot-${cellId}`, 35),
+// Random starting offset (percent of canvas) and rotation for the fly-in,
+// re-seeded per scene so the scatter direction varies each time. `offsetRange`
+// controls how far apart pieces start — small for a gentle "close the gap"
+// settle, large for a dramatic fly-in from off-canvas.
+export const cellFlightStart = (cellId: string, sceneId: string, offsetRange = 55, rotationRange = 35) => ({
+  offsetX: seededJitter(`${sceneId}-startX-${cellId}`, offsetRange),
+  offsetY: seededJitter(`${sceneId}-startY-${cellId}`, offsetRange),
+  rotation: seededJitter(`${sceneId}-startRot-${cellId}`, rotationRange),
 });
