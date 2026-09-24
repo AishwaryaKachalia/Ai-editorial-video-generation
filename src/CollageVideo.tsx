@@ -153,7 +153,7 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
         <div
           style={{
             opacity: logoOpacity,
-            width: '46%',
+            width: '62%',
             aspectRatio: '1 / 1',
             borderRadius: '50%',
             backgroundColor: 'rgba(30,28,26,0.92)',
@@ -164,7 +164,7 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
             overflow: 'hidden',
           }}
         >
-          <Img src={staticFile(LOGO_SRC)} style={{width: '62%', height: '62%', objectFit: 'contain'}} />
+          <Img src={staticFile(LOGO_SRC)} style={{width: '72%', height: '72%', objectFit: 'contain'}} />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
