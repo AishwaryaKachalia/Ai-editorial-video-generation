@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {CellRect, CollageScene} from './types';
-import {cellFlightDelay, cellFlightStart, cellJumbleStart, cellTilt} from './cellMotion';
+import {cellFlightDelay, cellJumbleStart, cellTilt} from './cellMotion';
 
 // Self-hosted (not fetched live from Google Fonts at render time — this
 // sandbox's headless Chromium doesn't trust the network proxy's CA for
@@ -12,13 +12,14 @@ const FontFace = () => (
     @font-face {
       font-family: 'Manrope';
       font-style: normal;
-      font-weight: 800;
-      src: url('${staticFile('fonts/Manrope-ExtraBold.woff2')}') format('woff2');
+      font-weight: 500;
+      src: url('${staticFile('fonts/Manrope-Medium.woff2')}') format('woff2');
     }
   `}</style>
 );
 
 const GRID_BACKGROUND = '#F3F2EF';
+const LOGO_SRC = 'images/logo.jpg';
 
 // Every scene: pieces appear jumbled (pushed outward from center, leaving
 // the middle empty) and HOLD there — that's the beat the word reads over —
@@ -30,16 +31,18 @@ const JUMBLE_MAGNITUDE = 30;
 const JUMBLE_ROTATION_RANGE = 28;
 const PIECE_FADE_IN_FRAMES = 6;
 
-// Closing beat: the last scene's pieces scatter back apart.
-const OUTRO_FLIGHT_FRAMES = 20;
-const OUTRO_OFFSET_RANGE = 45;
-const OUTRO_ROTATION_RANGE = 30;
-const OUTRO_SEED = 'outro';
-
 // Word: fades in with the jumbled pieces, holds through the jumble, fades
 // out as the pieces start converging.
 const WORD_FADE_IN_FRAMES = 6;
 const WORD_FADE_OUT_END = JUMBLE_HOLD_FRAMES + 8;
+
+// Closing beat: the last (already-assembled) scene blurs and the logo
+// fades in on top — no re-jumbling.
+const OUTRO_TOTAL_FRAMES = 50;
+const OUTRO_BLUR_MAX = 28;
+const OUTRO_BLUR_FRAMES = 30;
+const LOGO_FADE_START = 14;
+const LOGO_FADE_FRAMES = 18;
 
 const resolveScenes = (scenes: CollageScene[]) => {
   let cumulative = 0;
@@ -51,7 +54,7 @@ const resolveScenes = (scenes: CollageScene[]) => {
 };
 
 export const totalDuration = (scenes: CollageScene[]): number =>
-  scenes.reduce((sum, s) => sum + s.durationInFrames, 0) + OUTRO_FLIGHT_FRAMES + 10;
+  scenes.reduce((sum, s) => sum + s.durationInFrames, 0) + OUTRO_TOTAL_FRAMES;
 
 const CollageCell: React.FC<{
   cell: CellRect;
@@ -59,17 +62,14 @@ const CollageCell: React.FC<{
   compWidth: number;
   compHeight: number;
   fps: number;
-  frame: number;
-  sceneStart: number;
+  localFrame: number;
   sceneId: string;
-  isOutro: boolean;
-}> = ({cell, src, compWidth, compHeight, fps, frame, sceneStart, sceneId, isOutro}) => {
+}> = ({cell, src, compWidth, compHeight, fps, localFrame, sceneId}) => {
   const left = (cell.x / 100) * compWidth;
   const top = (cell.y / 100) * compHeight;
   const width = (cell.width / 100) * compWidth;
   const height = (cell.height / 100) * compHeight;
   const restRotation = cellTilt(cell.id);
-  const localFrame = frame - sceneStart;
 
   const img = (
     <Img
@@ -88,19 +88,6 @@ const CollageCell: React.FC<{
     overflow: 'hidden',
     transform,
   });
-
-  if (isOutro) {
-    const progress = spring({frame: localFrame, fps, durationInFrames: OUTRO_FLIGHT_FRAMES, config: {damping: 200, mass: 0.7}});
-    const target = cellFlightStart(cell.id, OUTRO_SEED, OUTRO_OFFSET_RANGE, OUTRO_ROTATION_RANGE);
-    const offsetXPx = (interpolate(progress, [0, 1], [0, target.offsetX]) / 100) * compWidth;
-    const offsetYPx = (interpolate(progress, [0, 1], [0, target.offsetY]) / 100) * compHeight;
-    const rotation = interpolate(progress, [0, 1], [restRotation, restRotation + target.rotation]);
-    const opacity = interpolate(localFrame, [OUTRO_FLIGHT_FRAMES - 8, OUTRO_FLIGHT_FRAMES], [1, 0], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    });
-    return <div style={box(`translate(${offsetXPx}px, ${offsetYPx}px) rotate(${rotation}deg)`, opacity)}>{img}</div>;
-  }
 
   const staggerDelay = cellFlightDelay(cell.id, sceneId, JUMBLE_STAGGER_WINDOW);
   const flightFrame = localFrame - JUMBLE_HOLD_FRAMES - staggerDelay;
@@ -127,13 +114,12 @@ const WordOverlay: React.FC<{word: string; localFrame: number}> = ({word, localF
       <div
         style={{
           opacity,
-          color: '#F3F2EF',
+          color: '#2B2B28',
           fontFamily,
-          fontWeight: 800,
+          fontWeight: 500,
           textTransform: 'uppercase',
-          fontSize: 96,
-          letterSpacing: 2,
-          textShadow: '0 2px 24px rgba(0,0,0,0.5)',
+          fontSize: 52,
+          letterSpacing: 8,
         }}
       >
         {word}
@@ -142,35 +128,83 @@ const WordOverlay: React.FC<{word: string; localFrame: number}> = ({word, localF
   );
 };
 
+const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compHeight: number}> = ({
+  src,
+  localFrame,
+  compWidth,
+  compHeight,
+}) => {
+  const blur = interpolate(localFrame, [0, OUTRO_BLUR_FRAMES], [0, OUTRO_BLUR_MAX], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const logoOpacity = interpolate(localFrame, [LOGO_FADE_START, LOGO_FADE_START + LOGO_FADE_FRAMES], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <AbsoluteFill>
+      <Img
+        src={staticFile(src)}
+        style={{width: compWidth, height: compHeight, objectFit: 'cover', filter: `blur(${blur}px)`}}
+      />
+      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
+        <div
+          style={{
+            opacity: logoOpacity,
+            width: '46%',
+            aspectRatio: '1 / 1',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(243,242,239,0.9)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          <Img src={staticFile(LOGO_SRC)} style={{width: '78%', height: '78%', objectFit: 'contain'}} />
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
   const frame = useCurrentFrame();
   const {width: compWidth, height: compHeight, fps} = useVideoConfig();
   const resolved = resolveScenes(scenes);
-  const scenesEnd = resolved[resolved.length - 1].sceneStart + resolved[resolved.length - 1].durationInFrames;
+  const lastScene = resolved[resolved.length - 1];
+  const scenesEnd = lastScene.sceneStart + lastScene.durationInFrames;
 
   const isOutro = frame >= scenesEnd;
-  const activeScene = isOutro ? resolved[resolved.length - 1] : resolved.slice().reverse().find((s) => s.sceneStart <= frame) ?? resolved[0];
+  const activeScene = isOutro ? lastScene : resolved.slice().reverse().find((s) => s.sceneStart <= frame) ?? resolved[0];
   const sceneStart = isOutro ? scenesEnd : activeScene.sceneStart;
   const localFrame = frame - sceneStart;
 
   return (
     <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
       <FontFace />
-      {activeScene.cells.map((cell) => (
-        <CollageCell
-          key={cell.id}
-          cell={cell}
-          src={activeScene.src}
-          compWidth={compWidth}
-          compHeight={compHeight}
-          fps={fps}
-          frame={frame}
-          sceneStart={sceneStart}
-          sceneId={activeScene.id}
-          isOutro={isOutro}
-        />
-      ))}
-      {!isOutro && activeScene.word && <WordOverlay word={activeScene.word} localFrame={localFrame} />}
+      {isOutro ? (
+        <Outro src={lastScene.src} localFrame={localFrame} compWidth={compWidth} compHeight={compHeight} />
+      ) : (
+        <>
+          {activeScene.cells.map((cell) => (
+            <CollageCell
+              key={cell.id}
+              cell={cell}
+              src={activeScene.src}
+              compWidth={compWidth}
+              compHeight={compHeight}
+              fps={fps}
+              localFrame={localFrame}
+              sceneId={activeScene.id}
+            />
+          ))}
+          {activeScene.word && <WordOverlay word={activeScene.word} localFrame={localFrame} />}
+        </>
+      )}
     </AbsoluteFill>
   );
 };
