@@ -36,8 +36,8 @@ const PIECE_FADE_IN_FRAMES = 6;
 const WORD_FADE_IN_FRAMES = 6;
 const WORD_FADE_OUT_END = JUMBLE_HOLD_FRAMES + 8;
 
-// Closing beat: the last (already-assembled) scene blurs and the logo
-// fades in on top — no re-jumbling.
+// Closing beat: once the last scene's puzzle has assembled and held, it
+// blurs in place and the logo fades in on top.
 const OUTRO_TOTAL_FRAMES = 50;
 const OUTRO_BLUR_MAX = 28;
 const OUTRO_BLUR_FRAMES = 30;
@@ -64,8 +64,7 @@ const CollageCell: React.FC<{
   fps: number;
   localFrame: number;
   sceneId: string;
-  skipJumble?: boolean;
-}> = ({cell, src, compWidth, compHeight, fps, localFrame, sceneId, skipJumble}) => {
+}> = ({cell, src, compWidth, compHeight, fps, localFrame, sceneId}) => {
   const left = (cell.x / 100) * compWidth;
   const top = (cell.y / 100) * compHeight;
   const width = (cell.width / 100) * compWidth;
@@ -89,11 +88,6 @@ const CollageCell: React.FC<{
     overflow: 'hidden',
     transform,
   });
-
-  if (skipJumble) {
-    // Last scene: already assembled, no re-jumble right before the outro.
-    return <div style={box(`rotate(${restRotation}deg)`, 1)}>{img}</div>;
-  }
 
   const staggerDelay = cellFlightDelay(cell.id, sceneId, JUMBLE_STAGGER_WINDOW);
   const flightFrame = localFrame - JUMBLE_HOLD_FRAMES - staggerDelay;
@@ -156,22 +150,15 @@ const Outro: React.FC<{src: string; localFrame: number; compWidth: number; compH
         style={{width: compWidth, height: compHeight, objectFit: 'cover', filter: `blur(${blur}px)`}}
       />
       <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-        <div
+        <Img
+          src={staticFile(LOGO_SRC)}
           style={{
             opacity: logoOpacity,
-            width: '78%',
-            aspectRatio: '1 / 1',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(30,28,26,0.92)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
+            width: '58%',
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))',
           }}
-        >
-          <Img src={staticFile(LOGO_SRC)} style={{width: '76%', height: '76%', objectFit: 'contain'}} />
-        </div>
+        />
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -188,7 +175,6 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
   const activeScene = isOutro ? lastScene : resolved.slice().reverse().find((s) => s.sceneStart <= frame) ?? resolved[0];
   const sceneStart = isOutro ? scenesEnd : activeScene.sceneStart;
   const localFrame = frame - sceneStart;
-  const isLastScene = activeScene.id === lastScene.id;
 
   return (
     <AbsoluteFill style={{backgroundColor: GRID_BACKGROUND}}>
@@ -207,7 +193,6 @@ export const CollageVideo: React.FC<{scenes: CollageScene[]}> = ({scenes}) => {
               fps={fps}
               localFrame={localFrame}
               sceneId={activeScene.id}
-              skipJumble={isLastScene}
             />
           ))}
           {activeScene.word && <WordOverlay word={activeScene.word} localFrame={localFrame} />}
