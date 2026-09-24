@@ -18,4 +18,7 @@ export type CollageScene = {
   /** Path under /public — the one image this scene's cells all crop from. */
   src: string;
   durationInFrames: number;
+  /** One word shown once the puzzle assembles, e.g. one word per scene
+   * across a video spells out a phrase. */
+  word?: string;
 };
